@@ -29,10 +29,17 @@ pub(crate) async fn run(args: Args) -> anyhow::Result<()> {
     .context("failed to build a prover_connection_pool")?;
 
     let mut conn = prover_connection_pool.connection().await.unwrap();
+    
+    get_prover_jobs_fri_status(args.batch, conn);
+
+    Ok(())
+}
+
+fn get_prover_jobs_fri_status(l1_batch_numbers: Vec<&L1BatchNumber>, conn: prover_dal::Connection<'_, Prover>) -> anyhow::Result<()>  {
     let stats = conn
-        .fri_prover_jobs_dal()
-        .get_prover_jobs_stats_for_batch(args.batch)
-        .await;
+    .fri_prover_jobs_dal()
+    .get_prover_jobs_stats_for_batch(l1_batch_numbers)
+    .await;
     if stats.len() > 0 {
         for row in &stats {
             let (l1_batch_number, statistics) = row;
@@ -40,8 +47,17 @@ pub(crate) async fn run(args: Args) -> anyhow::Result<()> {
             pretty_print_job_status(l1_batch_number, statistics, args.verbose)
         }
     } else {
-        println!("No batches found.")
+        println!("No batches found in.")
     }
+    Ok(())
+}
+
+fn get_witness_inputs_fri_status(l1_batch_numbers: Vec<&L1BatchNumber>, conn: prover_dal::Connection<'_, Prover>) -> anyhow::Result<()> {
+    let stats = conn
+    .fri_prover_jobs_dal()
+    .get_prover_jobs_stats_for_batch(l1_batch_numbers)
+    .await;
+    
     Ok(())
 }
 
