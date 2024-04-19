@@ -45,9 +45,10 @@ fn get_prover_jobs_fri_status(
         .await;
     if stats.len() > 0 {
         for row in &stats {
-            let (l1_batch_number, statistics) = row;
-
-            pretty_print_job_status(l1_batch_number, statistics, args.verbose)
+            let ((l1_batch_number, aggregation_round), statistics) = row;
+            if *aggregation_round == 0 {
+                pretty_print_job_status(l1_batch_number, statistics, args.verbose)
+            }
         }
     } else {
         println!("No batches found in.")
