@@ -1151,4 +1151,57 @@ impl FriWitnessGeneratorDal<'_, '_> {
         .map(|id| ProtocolVersionId::try_from(id as u16).unwrap())
         .unwrap()
     }
+
+    pub async fn get_basic_circuit_witness_job_stats_for_batch(
+        &mut self,
+        l1_batches_numbers: &Vec<L1BatchNumber>,
+    ) -> HashMap<L1BatchNumber, JobCountStatistics> {
+        {
+            sqlx::query!(
+                r#"
+                SELECT
+                    COUNT(*) AS "count!",
+                    l1_batch_number AS "l1_batch_number!",
+                    status AS "status!"
+                FROM
+                    witness_inputs_fri
+                WHERE
+                    l1_batch_number = ANY ($1)
+                GROUP BY
+                    l1_batch_number,
+                    status
+                "#,
+                &l1_batches_numbers
+                    .into_iter()
+                    .map(|x| i64::from(x.0))
+                    .collect::<Vec<i64>>()
+            )
+            .fetch_all(self.storage.conn())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| (row.l1_batch_number, row.status, row.count as usize))
+            .fold(
+                HashMap::new(),
+                |mut acc, (l1_batch_number, status, value)| {
+                    let stats = acc.entry(L1BatchNumber(l1_batch_number as u32)).or_insert(
+                        JobCountStatistics {
+                            queued: 0,
+                            in_progress: 0,
+                            failed: 0,
+                            successful: 0,
+                        },
+                    );
+                    match status.as_ref() {
+                        "queued" => stats.queued = value,
+                        "in_progress" => stats.in_progress = value,
+                        "failed" => stats.failed = value,
+                        "successful" => stats.successful = value,
+                        _ => (),
+                    }
+                    acc
+                },
+            )
+        }
+    }
 }

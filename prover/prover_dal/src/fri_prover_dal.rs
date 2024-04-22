@@ -597,7 +597,7 @@ impl FriProverDal<'_, '_> {
 
     pub async fn get_prover_jobs_stats_for_batch(
         &mut self,
-        l1_batches_numbers: Vec<L1BatchNumber>,
+        l1_batches_numbers: &Vec<L1BatchNumber>,
     ) -> HashMap<(L1BatchNumber, u8), JobCountStatistics> {
         {
             sqlx::query!(
